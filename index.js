@@ -13,30 +13,38 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 
+// Serve static files from the public directory
 app.use('/public', express.static(`${process.cwd()}/public`));
 
+// Serve the index.html file on the root route
 app.get('/', function (req, res) {
   res.sendFile(process.cwd() + '/views/index.html');
 });
 
-// Endpoint to handle POST request for creating a short URL
+// Your URL shortener logic
 app.post('/api/shorturl', (req, res) => {
-  const originalUrl = req.body.url;
+  let originalUrl;
 
-  // Verify if URL is valid by checking its hostname
-  const hostname = new URL(originalUrl).hostname;
-  
+  try {
+    originalUrl = new URL(req.body.url);
+  } catch (e) {
+    return res.json({ error: 'invalid url' });
+  }
+
+  const hostname = originalUrl.hostname;
+
   dns.lookup(hostname, (err) => {
     if (err) {
       return res.json({ error: 'invalid url' });
     }
+
     const shortUrlId = Object.keys(urls).length + 1;
-    urls[shortUrlId] = originalUrl;
-    res.json({ original_url: originalUrl, short_url: shortUrlId });
+    urls[shortUrlId] = originalUrl.href;
+    res.json({ original_url: originalUrl.href, short_url: shortUrlId });
   });
 });
 
-// Endpoint to handle redirecting to original URL
+// Redirect short URLs
 app.get('/api/shorturl/:shortUrl', (req, res) => {
   const shortUrlId = req.params.shortUrl;
   const originalUrl = urls[shortUrlId];
@@ -47,6 +55,7 @@ app.get('/api/shorturl/:shortUrl', (req, res) => {
   }
 });
 
+// Listen for requests
 app.listen(port, function () {
   console.log(`Listening on port ${port}`);
 });
