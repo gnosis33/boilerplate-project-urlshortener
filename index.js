@@ -8,7 +8,13 @@ const app = express();
 
 const port = process.env.PORT || 3000;
 
-app.use(cors());
+const corsOptions = {
+  origin: '*', // Allow all origins
+  methods: ['GET', 'POST'], // Allow specific methods
+  allowedHeaders: ['Content-Type'] // Allow specific headers
+};
+
+app.use(cors(corsOptions));
 app.use('/public', express.static(`${process.cwd()}/public`));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -43,6 +49,7 @@ app.post('/api/shorturl', (req, res) => {
   });
 });
 
+// Your first API endpoint
 app.get('/api/hello', function(req, res) {
   res.json({ greeting: 'hello API' });
 });
