@@ -43,6 +43,10 @@ app.post('/api/shorturl', (req, res) => {
   });
 });
 
+app.get('/api/hello', function(req, res) {
+  res.json({ greeting: 'hello API' });
+});
+
 // Redirect to original URL when accessing short URL
 app.get('/api/shorturl/:id', (req, res) => {
   const id = req.params.id;
