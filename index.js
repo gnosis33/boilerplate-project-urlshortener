@@ -3,73 +3,57 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const dns = require('dns');
-const app = express();
 const urlParser = require('url');
+const app = express();
 
-// Basic Configuration
 const port = process.env.PORT || 3000;
 
-// Middleware
 app.use(cors());
-app.use(bodyParser.urlencoded({ extended: false })); // To handle form submissions
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 
-// Store URLs in-memory
+// In-memory storage for URL mapping
 let urls = {};
 let urlId = 1;
 
-// Serve static files
-app.use('/public', express.static(`${process.cwd()}/public`));
-
 // Serve index.html on root
-app.get('/', function(req, res) {
-  res.sendFile(process.cwd() + '/views/index.html');
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/views/index.html');
 });
 
-// POST API: Handle URL Shortening
+// POST request to shorten the URL
 app.post('/api/shorturl', (req, res) => {
-  const originalUrl = req.body.url.trim();
+  const originalUrl = req.body.url;
   
-  // Basic URL validation using regex
-  const urlRegex = /^(https?:\/\/)(www\.)?[\w-]+(\.[\w-]+)+[/#?]?.*$/;
-  
-  if (!urlRegex.test(originalUrl)) {
+  // Regular expression to validate URL format
+  const urlRegex = /^(http|https):\/\/[^\s$.?#].[^\s]*$/gm;
+
+  if (!originalUrl.match(urlRegex)) {
     return res.json({ error: 'invalid url' });
   }
 
-  // Extract hostname and check if it exists using dns.lookup
-  const hostname = urlParser.parse(originalUrl).hostname;
-  dns.lookup(hostname, (err) => {
-    if (err) {
-      return res.json({ error: 'invalid url' });
-    }
+  // Store the URL and assign a short ID
+  const shortUrlId = urlId++;
+  urls[shortUrlId] = originalUrl;
 
-    // Store URL and respond with the shortened version
-    const shortUrlId = urlId++;
-    urls[shortUrlId] = originalUrl;
-    res.json({
-      original_url: originalUrl,
-      short_url: shortUrlId
-    });
+  res.json({
+    original_url: originalUrl,
+    short_url: shortUrlId
   });
 });
 
-// GET API: Redirect to the original URL using short_url
-app.get('/api/shorturl/:short_url', (req, res) => {
-  const shortUrlId = req.params.short_url;
-
-  if (urls[shortUrlId]) {
-    return res.redirect(urls[shortUrlId]);
+// Redirect to original URL when accessing short URL
+app.get('/api/shorturl/:id', (req, res) => {
+  const id = req.params.id;
+  const originalUrl = urls[id];
+  
+  if (originalUrl) {
+    res.redirect(originalUrl);
   } else {
-    return res.json({ error: 'No short URL found for the given input' });
+    res.json({ error: 'No short URL found for the given input' });
   }
 });
 
-// Test API Endpoint
-app.get('/api/hello', function(req, res) {
-  res.json({ greeting: 'hello API' });
-});
-
-// Listen on the specified port
-app.listen(port, function() {
+app.listen(port, () => {
   console.log(`Listening on port ${port}`);
 });
