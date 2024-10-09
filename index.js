@@ -23,23 +23,21 @@ app.get('/', (req, res) => {
 // POST request to shorten the URL
 app.post('/api/shorturl', (req, res) => {
   const originalUrl = req.body.url;
-  const parsedUrl = urlParser.parse(originalUrl);
   
-  // Verify the URL by checking its hostname
-  dns.lookup(parsedUrl.hostname, (err) => {
-    if (err) {
-      return res.json({ error: 'invalid url' });
-    }
-    
-    // Store the URL and assign an ID
-    urls[urlId] = originalUrl;
-    
-    res.json({
-      original_url: originalUrl,
-      short_url: urlId
-    });
-    
-    urlId++; // Increment ID for the next URL
+  // Regular expression to validate URL format
+  const urlRegex = /^(http|https):\/\/[^\s$.?#].[^\s]*$/gm;
+
+  if (!originalUrl.match(urlRegex)) {
+    return res.json({ error: 'invalid url' });
+  }
+
+  // Store the URL and assign a short ID
+  const shortUrlId = urlId++;
+  urls[shortUrlId] = originalUrl;
+
+  res.json({
+    original_url: originalUrl,
+    short_url: shortUrlId
   });
 });
 
